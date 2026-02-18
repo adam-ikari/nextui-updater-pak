@@ -141,15 +141,15 @@ pub fn do_nextui_release_check(app_state: &AppStateManager) {
         Ok(releases) => releases,
         Err(err) => {
             // Failed connection
-            println!("Releases fetch failed: {:?}", err.source());
-            app_state.set_operation_failed(&format!("Releases fetch failed: {err}"));
+            println!("Fetching releases failed: {:?}", err.source());
+            app_state.set_operation_failed(&format!("Fetching releases failed: {err}"));
             return;
         }
     };
     if latest_releases.is_empty() {
         // Connected, but no results
-        println!("Releases fetch returned 0 releases");
-        app_state.set_operation_failed("Releases fetch returned 0 releases");
+        println!("Fetching releases returned 0 releases");
+        app_state.set_operation_failed("Fetching releases returned 0 releases");
         return;
     }
 
@@ -159,15 +159,15 @@ pub fn do_nextui_release_check(app_state: &AppStateManager) {
         Ok(tags) => tags,
         Err(err) => {
             // Failed connection
-            println!("Tags fetch failed: {:?}", err.source());
-            app_state.set_operation_failed(&format!("Tags fetch failed: {err}"));
+            println!("Fetching tags failed: {:?}", err.source());
+            app_state.set_operation_failed(&format!("Fetching tags failed: {err}"));
             return;
         }
     };
     if latest_tags.is_empty() {
         // Connected, but no results
-        println!("Tags fetch returned 0 tags");
-        app_state.set_operation_failed("Tags fetch returned 0 tags");
+        println!("Fetching tags returned 0 tags");
+        app_state.set_operation_failed("Fetching tags returned 0 tags");
         return;
     }
 

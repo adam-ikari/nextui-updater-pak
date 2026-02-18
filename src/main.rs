@@ -5,10 +5,10 @@
 #![allow(dead_code)]
 
 use app_state::AppStateManager;
+use std::env;
 use std::thread;
 use ui::run_ui;
 use update::{do_nextui_release_check, do_self_update};
-use std::env;
 
 mod app_state;
 mod github;
@@ -27,7 +27,9 @@ fn parse_mock_display_size() -> Option<(u32, u32)> {
         if args[i] == "--mock-display" && i + 1 < args.len() {
             let size_str = &args[i + 1];
             if let Some((width_str, height_str)) = size_str.split_once('x') {
-                if let (Ok(width), Ok(height)) = (width_str.parse::<u32>(), height_str.parse::<u32>()) {
+                if let (Ok(width), Ok(height)) =
+                    (width_str.parse::<u32>(), height_str.parse::<u32>())
+                {
                     return Some((width, height));
                 }
             }

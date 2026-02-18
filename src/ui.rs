@@ -5,7 +5,7 @@ use egui_backend::egui;
 use egui_backend::{sdl2::event::Event, DpiScaling, ShaderVersion};
 use egui_sdl2_gl as egui_backend;
 use egui_sdl2_gl::egui::{
-    CornerRadius, FontData, FontDefinitions, FontFamily, Pos2, Rect, RichText, Spinner, Vec2,
+    CornerRadius, FontData, FontDefinitions, FontFamily, RichText, Spinner, Vec2,
 };
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -16,7 +16,7 @@ use crate::{Result, SDCARD_ROOT};
 const DEFAULT_WIDTH: u32 = 1024;
 const DEFAULT_HEIGHT: u32 = 768;
 const DEFAULT_DPI_SCALE: f32 = 4.0;
-const REFERENCE_DPI: f32 = 96.0; // Standard screen DPI reference
+const REFERENCE_DPI: f32 = 96.0; // Standard screen DPI referenceFONTS
 const FONTS: [&str; 2] = ["BPreplayBold-unhinted.otf", "chillroundm.ttf"];
 
 // Runtime-calculated scaling based on actual screen DPI
@@ -25,6 +25,11 @@ static mut DPI_SCALE_FACTOR: f32 = 1.0;
 // Helper function to scale UI values based on display DPI
 fn scale(value: f32) -> f32 {
     value * unsafe { DPI_SCALE_FACTOR }
+}
+
+// Helper function to create default text (size is set in style)
+fn text(s: impl Into<String>) -> RichText {
+    RichText::new(s)
 }
 
 #[allow(clippy::too_many_lines)]
@@ -45,15 +50,12 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
 
     if app_state.release_selection_menu() & !app_state.release_selection_confirmed() {
         ui.add_space(scale(16.0));
-        ui.label(
-            RichText::new(
-                "WARNING\n\
+        ui.label(text(
+            "WARNING\n\
             Downgrades are not fully supported by NextUI!\n\
             Some settings may be lost or unstable in old versions\n\
             Manual editing of settings or files may be required",
-            )
-            .size(scale(10.0)),
-        );
+        ));
     } else {
         // Show release information if available
         match (current_version, latest_tag, latest_release) {
@@ -63,47 +65,32 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                     if app_state.release_selection_menu() {
                         // selection view
                         ui.label(
-                            RichText::new(format!("Selected Version:\n{selected_tag}\nThis version is currently already installed!")).size(scale(10.0)),
+                            text(format!("Selected Version: {selected_tag}\nThis version is currently already installed!")),
                         );
                     } else {
-                        ui.label(
-                            RichText::new(format!(
-                                "You currently have the latest available version:\n{selected_tag}"
-                            ))
-                            .size(scale(10.0)),
-                        );
+                        ui.label(text(format!(
+                            "You currently have the latest available version:\n{selected_tag}"
+                        )));
                     }
                     update_available = false;
                 } else if app_state.release_selection_menu() {
                     // selection view
-                    ui.label(
-                        RichText::new(format!("Selected Version:\n{selected_tag}")).size(10.0),
-                    );
+                    ui.label(text(format!("Selected Version: {selected_tag}")));
                 } else {
-                    ui.label(
-                        RichText::new(format!("New version available:\n{selected_tag}"))
-                            .size(scale(10.0)),
-                    );
+                    ui.label(text(format!("New version available: {selected_tag}")));
                 }
             }
             (_, _, Some(release)) => {
                 if app_state.release_selection_menu() {
                     // selection view
                     let selected_tag = hint_wrap_nextui_tag(app_state, &release.tag_name);
-                    ui.label(
-                        RichText::new(format!("Selected Version:\n{selected_tag}")).size(10.0),
-                    );
+                    ui.label(text(format!("Selected Version: {selected_tag}")));
                 } else {
-                    ui.label(
-                        RichText::new(format!("Latest version:\nNextUI {}", release.tag_name))
-                            .size(scale(10.0)),
-                    );
+                    ui.label(text(format!("Latest version: NextUI {}", release.tag_name)));
                 }
             }
             _ => {
-                ui.label(
-                    RichText::new("No release information available".to_string()).size(scale(10.0)),
-                );
+                ui.label(text("No release information available"));
             }
         }
     }
@@ -111,12 +98,12 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
     ui.add_space(scale(8.0));
 
     if app_state.release_selection_menu() & !app_state.release_selection_confirmed() {
-        let back_button = ui.button("Return");
+        let back_button = ui.button(text("Return"));
         if back_button.clicked() {
             app_state.set_release_selection_menu(false);
         }
 
-        let confirm_button = ui.button("Accept Warning");
+        let confirm_button = ui.button(text("Accept Warning"));
         if confirm_button.clicked() {
             app_state.set_release_selection_confirmed(true);
         }
@@ -131,7 +118,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
 
         back_button
     } else if update_available {
-        let quick_update_button = ui.add(Button::new("Quick Update"));
+        let quick_update_button = ui.add(Button::new(text("Quick Update")));
 
         // Initiate update if button clicked
         if quick_update_button.clicked() {
@@ -142,7 +129,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
 
         ui.add_space(scale(4.0));
 
-        let full_update_button = ui.add(Button::new("Full Update"));
+        let full_update_button = ui.add(Button::new(text("Full Update")));
 
         if full_update_button.clicked() {
             // Clear any previous errors
@@ -161,12 +148,12 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
 
         quick_update_button
     } else {
-        let force_button = ui.button("Update anyway");
+        let force_button = ui.button(text("Update anyway"));
         if force_button.clicked() {
             app_state.set_nextui_tag(None); // forget the tag
         }
 
-        let quit_button = ui.button("Quit");
+        let quit_button = ui.button(text("Quit"));
         if quit_button.clicked() {
             if app_state.release_selection_menu() {
                 app_state.set_release_selection_menu(false);
@@ -207,9 +194,13 @@ fn controller_to_key(button: sdl2::controller::Button) -> Option<sdl2::keyboard:
 
 fn setup_ui_style() -> egui::Style {
     let mut style = egui::Style::default();
-    style.spacing.button_padding = Vec2::new(scale(8.0), scale(2.0));
 
-    style.visuals.panel_fill = Color32::from_rgb(0, 0, 0);
+    // Scale button spacing and padding
+    style.spacing.button_padding = Vec2::new(scale(8.0), scale(2.0));
+    style.spacing.interact_size = Vec2::new(scale(8.0), scale(8.0));
+    style.spacing.item_spacing = Vec2::new(scale(4.0), scale(4.0));
+
+    style.visuals.panel_fill = Color32::BLACK;
     style.visuals.selection.bg_fill = Color32::WHITE;
     style.visuals.selection.stroke.color = Color32::GRAY;
 
@@ -228,10 +219,17 @@ fn setup_ui_style() -> egui::Style {
     style.visuals.widgets.hovered.weak_bg_fill = Color32::TRANSPARENT;
     style.visuals.widgets.hovered.corner_radius = CornerRadius::same(255);
 
+    // Set default text size for all TextStyles
+    for (_text_style, font_id) in style.text_styles.iter_mut() {
+        font_id.size = scale(10.0);
+    }
+
     style
 }
 
-fn init_sdl(mock_display_size: Option<(u32, u32)>) -> Result<(
+fn init_sdl(
+    mock_display_size: Option<(u32, u32)>,
+) -> Result<(
     sdl2::Sdl,
     sdl2::video::Window,
     sdl2::EventPump,
@@ -248,11 +246,17 @@ fn init_sdl(mock_display_size: Option<(u32, u32)>) -> Result<(
 
     // Get display bounds for resolution-based scaling fallback
     let (screen_width, screen_height) = if let Some((mock_width, mock_height)) = mock_display_size {
-        println!("[DEBUG] Using mock display size: {}x{}", mock_width, mock_height);
+        println!(
+            "[DEBUG] Using mock display size: {}x{}",
+            mock_width, mock_height
+        );
         (mock_width as f32, mock_height as f32)
     } else {
         let display_bounds = video_subsystem.display_bounds(0)?;
-        (display_bounds.width() as f32, display_bounds.height() as f32)
+        (
+            display_bounds.width() as f32,
+            display_bounds.height() as f32,
+        )
     };
 
     println!(
@@ -301,7 +305,10 @@ fn init_sdl(mock_display_size: Option<(u32, u32)>) -> Result<(
         (width, height)
     };
 
-    println!("Creating window with size: {}x{}", window_width, window_height);
+    println!(
+        "Creating window with size: {}x{}",
+        window_width, window_height
+    );
 
     // Initialize game controller subsystem
     let game_controller_subsystem = sdl_context.game_controller()?;
@@ -323,12 +330,18 @@ fn init_sdl(mock_display_size: Option<(u32, u32)>) -> Result<(
     });
 
     // Create a window
-    let window = video_subsystem
-        .window(
-            &format!("NextUI Updater {}", env!("CARGO_PKG_VERSION")),
-            window_width,
-            window_height,
+    let base_title = format!("NextUI Updater {}", env!("CARGO_PKG_VERSION"));
+    let window_title = if let Some((width, height)) = mock_display_size {
+        format!(
+            "{} - {}x{}, {:.2}x scale",
+            base_title, width, height, dpi_scale
         )
+    } else {
+        base_title
+    };
+
+    let window = video_subsystem
+        .window(&window_title, window_width, window_height)
         .position_centered()
         .opengl()
         .build()?;
@@ -421,7 +434,10 @@ fn handle_version_navigation(app_state: &'static AppStateManager, direction: i32
 }
 
 #[allow(clippy::too_many_lines)]
-pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u32, u32)>) -> Result<()> {
+pub fn run_ui(
+    app_state: &'static AppStateManager,
+    mock_display_size: Option<(u32, u32)>,
+) -> Result<()> {
     // Initialize SDL and create window
     let (_sdl_context, window, mut event_pump, _controller) = init_sdl(mock_display_size)?;
 
@@ -461,22 +477,19 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
                 if app_state.release_selection_menu() {
                     if app_state.release_selection_confirmed() {
                         ui.label(
-                            RichText::new(title_prefix + " Version Selector")
-                                .color(Color32::from_rgb(150, 150, 150))
-                                .size(scale(10.0)),
+                            text(title_prefix + " Version Selector")
+                                .color(Color32::from_rgb(150, 150, 150)),
                         );
                     } else {
                         ui.label(
-                            RichText::new(title_prefix + " Version Selector Warning")
-                                .color(Color32::from_rgb(150, 150, 150))
-                                .size(scale(10.0)),
+                            text(title_prefix + " Version Selector Warning")
+                                .color(Color32::from_rgb(150, 150, 150)),
                         );
                     }
                 } else {
                     ui.label(
-                        RichText::new(title_prefix)
-                            .color(Color32::from_rgb(150, 150, 150))
-                            .size(scale(10.0)),
+                        text(title_prefix)
+                            .color(Color32::from_rgb(150, 150, 150)),
                     );
                 }
                 ui.add_space(scale(4.0));
@@ -499,12 +512,12 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
 
                 // Display current operation
                 if let Some(operation) = app_state.current_operation() {
-                    ui.label(RichText::new(operation).color(Color32::from_rgb(150, 150, 150)).size(scale(10.0)));
+                    ui.label(text(operation).color(Color32::from_rgb(150, 150, 150)));
                 }
 
                 // Display error if any
                 if let Some(error) = app_state.error() {
-                    ui.colored_label(Color32::from_rgb(255, 150, 150), RichText::new(error));
+                    ui.colored_label(Color32::from_rgb(255, 150, 150), text(error));
                 }
 
                 // Show progress bar if available
@@ -551,13 +564,13 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
                                 rect.center(),
                                 egui::Align2::CENTER_CENTER,
                                 "X",
-                                egui::FontId::proportional(scale(6.0)),
+                                egui::FontId::proportional(button_size),
                                 Color32::from_rgb(180, 180, 180),
                             );
 
                             ui.label(
                                 RichText::new("Select Version")
-                                    .size(scale(6.0))
+                                    .size(button_size)
                                     .color(Color32::from_rgb(100, 100, 100)),
                             );
                         });
@@ -569,7 +582,7 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
                     .anchor(egui::Align2::CENTER_BOTTOM, Vec2::new(0.0, scale(-6.0)))
                     .interactable(false)
                     .show(ui.ctx(), |ui| {
-                        ui.label(RichText::new(hint).size(scale(10.0)));
+                        ui.label(text(hint));
                     });
             }
 
@@ -581,7 +594,6 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
                         RichText::new(
                             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-=_+[]{};':\",.<>/?",
                         )
-                        .size(scale(10.0))
                         .color(Color32::TRANSPARENT)
                     );
                     ui.label(
