@@ -35,7 +35,7 @@ EOF
     chmod +x "${LAUNCH_SCRIPT}"
 done
 
-(cd "${DIST_DIR}" && zip -r "../${ZIP_FILE}" .)
+#(cd "${DIST_DIR}" && zip -r "../${ZIP_FILE}" .)
 for PLATFORM in tg5040 tg5050 my355; do
     (cd "${DIST_DIR}/Tools/${PLATFORM}/${PAK_DIR_NAME}.pak" && zip -r "../../../../${PAK_DIR_NAME}_${PLATFORM}.zip" .)
 done
