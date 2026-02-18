@@ -251,7 +251,9 @@ fn init_sdl() -> Result<(
         DPI_SCALE_FACTOR = dpi / REFERENCE_DPI;
     }
 
+    #[allow(clippy::cast_sign_loss)]
     let window_width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+    #[allow(clippy::cast_sign_loss)]
     let window_height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
 
     println!("Display DPI: {:.0}, DPI scale factor: {:.2}", dpi, unsafe {
