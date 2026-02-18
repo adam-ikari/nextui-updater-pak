@@ -1,0 +1,38 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug (1024x768)",
+            "program": "${workspaceFolder}/target/debug/nextui-updater-rs",
+            "args": ["--mock-display", "1024x768"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "cargo-build-debug"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug (1280x720)",
+            "program": "${workspaceFolder}/target/debug/nextui-updater-rs",
+            "args": ["--mock-display", "1280x720"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "cargo-build-debug"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug (640x480)",
+            "program": "${workspaceFolder}/target/debug/nextui-updater-rs",
+            "args": ["--mock-display", "640x480"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "cargo-build-debug"
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch All Resolutions",
+            "configurations": ["Debug (1024x768)", "Debug (1280x720)", "Debug (640x480)"]
+        }
+    ]
+}

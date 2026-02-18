@@ -231,7 +231,7 @@ fn setup_ui_style() -> egui::Style {
     style
 }
 
-fn init_sdl() -> Result<(
+fn init_sdl(mock_display_size: Option<(u32, u32)>) -> Result<(
     sdl2::Sdl,
     sdl2::video::Window,
     sdl2::EventPump,
@@ -247,13 +247,17 @@ fn init_sdl() -> Result<(
         .0;
 
     // Get display bounds for resolution-based scaling fallback
-    let display_bounds = video_subsystem.display_bounds(0)?;
-    let screen_width = display_bounds.width();
-    let screen_height = display_bounds.height() as f32;
+    let (screen_width, screen_height) = if let Some((mock_width, mock_height)) = mock_display_size {
+        println!("[DEBUG] Using mock display size: {}x{}", mock_width, mock_height);
+        (mock_width as f32, mock_height as f32)
+    } else {
+        let display_bounds = video_subsystem.display_bounds(0)?;
+        (display_bounds.width() as f32, display_bounds.height() as f32)
+    };
 
     println!(
         "Screen dimensions: {}x{}, reported DPI: {:.0}",
-        screen_width, display_bounds.height(), dpi
+        screen_width, screen_height, dpi
     );
 
     // Calculate DPI scale factor
@@ -284,10 +288,20 @@ fn init_sdl() -> Result<(
         DPI_SCALE_FACTOR = dpi_scale;
     }
 
+    // When mock display size is provided, use the width directly and only scale the height
+    // Otherwise, scale both dimensions proportionally
     #[allow(clippy::cast_sign_loss)]
-    let window_width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
-    #[allow(clippy::cast_sign_loss)]
-    let window_height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+    let (window_width, window_height) = if mock_display_size.is_some() {
+        let width = (screen_width.max(1.0)) as u32;
+        let height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+        (width, height)
+    } else {
+        let width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+        let height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+        (width, height)
+    };
+
+    println!("Creating window with size: {}x{}", window_width, window_height);
 
     // Initialize game controller subsystem
     let game_controller_subsystem = sdl_context.game_controller()?;
@@ -407,9 +421,9 @@ fn handle_version_navigation(app_state: &'static AppStateManager, direction: i32
 }
 
 #[allow(clippy::too_many_lines)]
-pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
+pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u32, u32)>) -> Result<()> {
     // Initialize SDL and create window
-    let (_sdl_context, window, mut event_pump, _controller) = init_sdl()?;
+    let (_sdl_context, window, mut event_pump, _controller) = init_sdl(mock_display_size)?;
 
     // Create OpenGL context and egui painter
     let _gl_context = window.gl_create_context()?;

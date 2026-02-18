@@ -8,6 +8,7 @@ use app_state::AppStateManager;
 use std::thread;
 use ui::run_ui;
 use update::{do_nextui_release_check, do_self_update};
+use std::env;
 
 mod app_state;
 mod github;
@@ -19,6 +20,21 @@ pub const SDCARD_ROOT: &str = "/mnt/SDCARD/";
 
 // Error type for the application
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
+
+fn parse_mock_display_size() -> Option<(u32, u32)> {
+    let args: Vec<String> = env::args().collect();
+    for i in 0..args.len() {
+        if args[i] == "--mock-display" && i + 1 < args.len() {
+            let size_str = &args[i + 1];
+            if let Some((width_str, height_str)) = size_str.split_once('x') {
+                if let (Ok(width), Ok(height)) = (width_str.parse::<u32>(), height_str.parse::<u32>()) {
+                    return Some((width, height));
+                }
+            }
+        }
+    }
+    None
+}
 
 fn main() -> Result<()> {
     // Initialize application state
@@ -40,7 +56,13 @@ fn main() -> Result<()> {
         do_nextui_release_check(&app_state_clone);
     });
 
-    run_ui(app_state)?;
+    // Parse mock display size from arguments
+    let mock_display_size = parse_mock_display_size();
+    if let Some((width, height)) = mock_display_size {
+        println!("[DEBUG] Using mock display size: {}x{}", width, height);
+    }
+
+    run_ui(app_state, mock_display_size)?;
 
     Ok(())
 }
