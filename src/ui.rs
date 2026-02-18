@@ -251,8 +251,8 @@ fn init_sdl() -> Result<(
         DPI_SCALE_FACTOR = dpi / REFERENCE_DPI;
     }
 
-    let window_width = (DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
-    let window_height = (DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
+    let window_width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
+    let window_height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
 
     println!("Display DPI: {:.0}, DPI scale factor: {:.2}", dpi, unsafe {
         DPI_SCALE_FACTOR
