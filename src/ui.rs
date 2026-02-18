@@ -15,8 +15,9 @@ use crate::{Result, SDCARD_ROOT};
 
 const DEFAULT_WIDTH: u32 = 1024;
 const DEFAULT_HEIGHT: u32 = 768;
-const DEFAULT_DPI_SCALE: f32 = 4.0;
-const REFERENCE_DPI: f32 = 96.0; // Standard screen DPI referenceFONTS
+const REFERENCE_HEIGHT: f32 = 240.0; // Reference height unit for scaling (240px = 1x scale)
+const DEFAULT_DPI_SCALE: f32 = 4.0 / 3.0; // Adjusted for new 240px reference (was 4.0 at 768px = 3x)
+const REFERENCE_DPI: f32 = 96.0; // Standard screen DPI reference
 const FONTS: [&str; 2] = ["BPreplayBold-unhinted.otf", "chillroundm.ttf"];
 
 // Runtime-calculated scaling based on actual screen DPI
@@ -24,7 +25,7 @@ static mut DPI_SCALE_FACTOR: f32 = 1.0;
 
 // Helper function to scale UI values based on display DPI
 fn scale(value: f32) -> f32 {
-    value * unsafe { DPI_SCALE_FACTOR }
+    value //* unsafe { DPI_SCALE_FACTOR }
 }
 
 // Helper function to create default text (size is set in style)
@@ -268,13 +269,13 @@ fn init_sdl(
     // If DPI detection doesn't work (returns default 96), use resolution-based estimate
     let dpi_scale = if (dpi - REFERENCE_DPI).abs() < 0.1 {
         // DPI detection likely failed, use resolution-based scaling
-        // 1024×768 is our reference; scale other resolutions proportionally to height
-        let height_ratio = screen_height / DEFAULT_HEIGHT as f32;
+        // Use 240px as the reference height unit: 480px = 2x, 768px ≈ 3x, 720px = 3x
+        let height_scale = (screen_height / REFERENCE_HEIGHT).round();
         println!(
-            "DPI detection unreliable, using resolution-based scaling: {:.2}x",
-            height_ratio
+            "DPI detection unreliable, using resolution-based scaling: {:.1}x ({}px / {}px)",
+            height_scale, screen_height, REFERENCE_HEIGHT
         );
-        height_ratio.max(0.5).min(2.0) // Clamp between 0.5x and 2.0x
+        height_scale.max(1.0).min(4.0) // Clamp between 1x and 4x
     } else {
         // DPI detection worked, use it
         println!(
@@ -292,13 +293,12 @@ fn init_sdl(
         DPI_SCALE_FACTOR = dpi_scale;
     }
 
-    // When mock display size is provided, use the width directly and only scale the height
-    // Otherwise, scale both dimensions proportionally
+    // When mock display size is provided, use it directly
+    // Otherwise, scale the default dimensions proportionally
     #[allow(clippy::cast_sign_loss)]
-    let (window_width, window_height) = if mock_display_size.is_some() {
-        let width = (screen_width.max(1.0)) as u32;
-        let height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
-        (width, height)
+    let (window_width, window_height) = if let Some((mock_width, mock_height)) = mock_display_size {
+        // Mock display size is already in the desired resolution
+        (mock_width, mock_height)
     } else {
         let width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
         let height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
