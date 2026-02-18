@@ -81,7 +81,8 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                     );
                 } else {
                     ui.label(
-                        RichText::new(format!("New version available:\n{selected_tag}")).size(scale(10.0)),
+                        RichText::new(format!("New version available:\n{selected_tag}"))
+                            .size(scale(10.0)),
                     );
                 }
             }
@@ -100,7 +101,9 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                 }
             }
             _ => {
-                ui.label(RichText::new("No release information available".to_string()).size(scale(10.0)));
+                ui.label(
+                    RichText::new("No release information available".to_string()).size(scale(10.0)),
+                );
             }
         }
     }
@@ -238,8 +241,11 @@ fn init_sdl() -> Result<(
     let video_subsystem = sdl_context.video()?;
 
     // Get actual screen DPI for scaling
-    let dpi = video_subsystem.display_dpi(0).unwrap_or((REFERENCE_DPI, REFERENCE_DPI, REFERENCE_DPI)).0;
-    
+    let dpi = video_subsystem
+        .display_dpi(0)
+        .unwrap_or((REFERENCE_DPI, REFERENCE_DPI, REFERENCE_DPI))
+        .0;
+
     // Calculate DPI scale factor relative to reference DPI
     unsafe {
         DPI_SCALE_FACTOR = dpi / REFERENCE_DPI;
@@ -248,11 +254,9 @@ fn init_sdl() -> Result<(
     let window_width = (DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
     let window_height = (DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
 
-    println!(
-        "Display DPI: {:.0}, DPI scale factor: {:.2}",
-        dpi,
-        unsafe { DPI_SCALE_FACTOR }
-    );
+    println!("Display DPI: {:.0}, DPI scale factor: {:.2}", dpi, unsafe {
+        DPI_SCALE_FACTOR
+    });
 
     // Initialize game controller subsystem
     let game_controller_subsystem = sdl_context.game_controller()?;
