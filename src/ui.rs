@@ -565,23 +565,12 @@ pub fn run_ui(app_state: &'static AppStateManager, mock_display_size: Option<(u3
             }
 
             if let Some(hint) = app_state.hint() {
-                ui.scope_builder(
-                    egui::UiBuilder::new().max_rect(Rect {
-                        min: Pos2 {
-                            x: 0.0,
-                            y: ui.max_rect().height() - scale(2.0),
-                        },
-                        max: Pos2 {
-                            x: DEFAULT_WIDTH as f32 / (DEFAULT_DPI_SCALE * unsafe { DPI_SCALE_FACTOR }),
-                            y: ui.max_rect().height(),
-                        },
-                    }),
-                    |ui| {
-                        ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new(hint).size(scale(10.0)));
-                        });
-                    },
-                );
+                egui::Area::new(egui::Id::new("hint_area"))
+                    .anchor(egui::Align2::CENTER_BOTTOM, Vec2::new(0.0, scale(-6.0)))
+                    .interactable(false)
+                    .show(ui.ctx(), |ui| {
+                        ui.label(RichText::new(hint).size(scale(10.0)));
+                    });
             }
 
             // HACK: for some reason dynamic text isn't rendered without this
