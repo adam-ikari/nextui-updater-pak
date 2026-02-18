@@ -246,19 +246,48 @@ fn init_sdl() -> Result<(
         .unwrap_or((REFERENCE_DPI, REFERENCE_DPI, REFERENCE_DPI))
         .0;
 
-    // Calculate DPI scale factor relative to reference DPI
+    // Get display bounds for resolution-based scaling fallback
+    let display_bounds = video_subsystem.display_bounds(0)?;
+    let screen_width = display_bounds.width();
+    let screen_height = display_bounds.height() as f32;
+
+    println!(
+        "Screen dimensions: {}x{}, reported DPI: {:.0}",
+        screen_width, display_bounds.height(), dpi
+    );
+
+    // Calculate DPI scale factor
+    // If DPI detection doesn't work (returns default 96), use resolution-based estimate
+    let dpi_scale = if (dpi - REFERENCE_DPI).abs() < 0.1 {
+        // DPI detection likely failed, use resolution-based scaling
+        // 1024×768 is our reference; scale other resolutions proportionally to height
+        let height_ratio = screen_height / DEFAULT_HEIGHT as f32;
+        println!(
+            "DPI detection unreliable, using resolution-based scaling: {:.2}x",
+            height_ratio
+        );
+        height_ratio.max(0.5).min(2.0) // Clamp between 0.5x and 2.0x
+    } else {
+        // DPI detection worked, use it
+        println!(
+            "Using DPI-based scaling: {:.2}x (screen height: {:.0}px, DPI: {:.0})",
+            dpi / REFERENCE_DPI,
+            screen_height,
+            dpi
+        );
+        dpi / REFERENCE_DPI
+    };
+
+    println!("Final UI scale factor: {:.2}x", dpi_scale);
+
     unsafe {
-        DPI_SCALE_FACTOR = dpi / REFERENCE_DPI;
+        DPI_SCALE_FACTOR = dpi_scale;
     }
 
     #[allow(clippy::cast_sign_loss)]
     let window_width = ((DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
     #[allow(clippy::cast_sign_loss)]
     let window_height = ((DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }).max(1.0)) as u32;
-
-    println!("Display DPI: {:.0}, DPI scale factor: {:.2}", dpi, unsafe {
-        DPI_SCALE_FACTOR
-    });
 
     // Initialize game controller subsystem
     let game_controller_subsystem = sdl_context.game_controller()?;
