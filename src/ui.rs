@@ -13,10 +13,19 @@ use std::{io::Read, sync::Arc, time::Instant};
 
 use crate::{Result, SDCARD_ROOT};
 
-const WINDOW_WIDTH: u32 = 1024;
-const WINDOW_HEIGHT: u32 = 768;
-const DPI_SCALE: f32 = 4.0;
+const DEFAULT_WIDTH: u32 = 1024;
+const DEFAULT_HEIGHT: u32 = 768;
+const DEFAULT_DPI_SCALE: f32 = 4.0;
+const REFERENCE_DPI: f32 = 96.0; // Standard screen DPI reference
 const FONTS: [&str; 2] = ["BPreplayBold-unhinted.otf", "chillroundm.ttf"];
+
+// Runtime-calculated scaling based on actual screen DPI
+static mut DPI_SCALE_FACTOR: f32 = 1.0;
+
+// Helper function to scale UI values based on display DPI
+fn scale(value: f32) -> f32 {
+    value * unsafe { DPI_SCALE_FACTOR }
+}
 
 #[allow(clippy::too_many_lines)]
 fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Response {
@@ -35,7 +44,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
     }
 
     if app_state.release_selection_menu() & !app_state.release_selection_confirmed() {
-        ui.add_space(16.0);
+        ui.add_space(scale(16.0));
         ui.label(
             RichText::new(
                 "WARNING\n\
@@ -43,7 +52,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
             Some settings may be lost or unstable in old versions\n\
             Manual editing of settings or files may be required",
             )
-            .size(10.0),
+            .size(scale(10.0)),
         );
     } else {
         // Show release information if available
@@ -54,14 +63,14 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                     if app_state.release_selection_menu() {
                         // selection view
                         ui.label(
-                            RichText::new(format!("Selected Version:\n{selected_tag}\nThis version is currently already installed!")).size(10.0),
+                            RichText::new(format!("Selected Version:\n{selected_tag}\nThis version is currently already installed!")).size(scale(10.0)),
                         );
                     } else {
                         ui.label(
                             RichText::new(format!(
                                 "You currently have the latest available version:\n{selected_tag}"
                             ))
-                            .size(10.0),
+                            .size(scale(10.0)),
                         );
                     }
                     update_available = false;
@@ -72,7 +81,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                     );
                 } else {
                     ui.label(
-                        RichText::new(format!("New version available:\n{selected_tag}")).size(10.0),
+                        RichText::new(format!("New version available:\n{selected_tag}")).size(scale(10.0)),
                     );
                 }
             }
@@ -86,17 +95,17 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
                 } else {
                     ui.label(
                         RichText::new(format!("Latest version:\nNextUI {}", release.tag_name))
-                            .size(10.0),
+                            .size(scale(10.0)),
                     );
                 }
             }
             _ => {
-                ui.label(RichText::new("No release information available".to_string()).size(10.0));
+                ui.label(RichText::new("No release information available".to_string()).size(scale(10.0)));
             }
         }
     }
 
-    ui.add_space(8.0);
+    ui.add_space(scale(8.0));
 
     if app_state.release_selection_menu() & !app_state.release_selection_confirmed() {
         let back_button = ui.button("Return");
@@ -128,7 +137,7 @@ fn nextui_ui(ui: &mut egui::Ui, app_state: &'static AppStateManager) -> egui::Re
             do_update(app_state, false);
         }
 
-        ui.add_space(4.0);
+        ui.add_space(scale(4.0));
 
         let full_update_button = ui.add(Button::new("Full Update"));
 
@@ -195,7 +204,7 @@ fn controller_to_key(button: sdl2::controller::Button) -> Option<sdl2::keyboard:
 
 fn setup_ui_style() -> egui::Style {
     let mut style = egui::Style::default();
-    style.spacing.button_padding = Vec2::new(8.0, 2.0);
+    style.spacing.button_padding = Vec2::new(scale(8.0), scale(2.0));
 
     style.visuals.panel_fill = Color32::from_rgb(0, 0, 0);
     style.visuals.selection.bg_fill = Color32::WHITE;
@@ -228,6 +237,23 @@ fn init_sdl() -> Result<(
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
+    // Get actual screen DPI for scaling
+    let dpi = video_subsystem.display_dpi(0).unwrap_or((REFERENCE_DPI, REFERENCE_DPI, REFERENCE_DPI)).0;
+    
+    // Calculate DPI scale factor relative to reference DPI
+    unsafe {
+        DPI_SCALE_FACTOR = dpi / REFERENCE_DPI;
+    }
+
+    let window_width = (DEFAULT_WIDTH as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
+    let window_height = (DEFAULT_HEIGHT as f32 * unsafe { DPI_SCALE_FACTOR }) as u32;
+
+    println!(
+        "Display DPI: {:.0}, DPI scale factor: {:.2}",
+        dpi,
+        unsafe { DPI_SCALE_FACTOR }
+    );
+
     // Initialize game controller subsystem
     let game_controller_subsystem = sdl_context.game_controller()?;
     let available = game_controller_subsystem.num_joysticks()?;
@@ -251,8 +277,8 @@ fn init_sdl() -> Result<(
     let window = video_subsystem
         .window(
             &format!("NextUI Updater {}", env!("CARGO_PKG_VERSION")),
-            WINDOW_WIDTH,
-            WINDOW_HEIGHT,
+            window_width,
+            window_height,
         )
         .position_centered()
         .opengl()
@@ -353,8 +379,9 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
     // Create OpenGL context and egui painter
     let _gl_context = window.gl_create_context()?;
     let shader_ver = ShaderVersion::Adaptive;
+    let dpi_scale = DEFAULT_DPI_SCALE * unsafe { DPI_SCALE_FACTOR };
     let (mut painter, mut egui_state) =
-        egui_backend::with_sdl2(&window, shader_ver, DpiScaling::Custom(DPI_SCALE));
+        egui_backend::with_sdl2(&window, shader_ver, DpiScaling::Custom(dpi_scale));
 
     // Create egui context and set style
     let egui_ctx = egui::Context::default();
@@ -387,23 +414,23 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
                         ui.label(
                             RichText::new(title_prefix + " Version Selector")
                                 .color(Color32::from_rgb(150, 150, 150))
-                                .size(10.0),
+                                .size(scale(10.0)),
                         );
                     } else {
                         ui.label(
                             RichText::new(title_prefix + " Version Selector Warning")
                                 .color(Color32::from_rgb(150, 150, 150))
-                                .size(10.0),
+                                .size(scale(10.0)),
                         );
                     }
                 } else {
                     ui.label(
                         RichText::new(title_prefix)
                             .color(Color32::from_rgb(150, 150, 150))
-                            .size(10.0),
+                            .size(scale(10.0)),
                     );
                 }
-                ui.add_space(4.0);
+                ui.add_space(scale(4.0));
 
                 ui.add_enabled_ui(!update_in_progress, |ui| {
                     let submenu = app_state.submenu();
@@ -419,11 +446,11 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
                     });
                 });
 
-                ui.add_space(8.0);
+                ui.add_space(scale(8.0));
 
                 // Display current operation
                 if let Some(operation) = app_state.current_operation() {
-                    ui.label(RichText::new(operation).color(Color32::from_rgb(150, 150, 150)).size(10.0));
+                    ui.label(RichText::new(operation).color(Color32::from_rgb(150, 150, 150)).size(scale(10.0)));
                 }
 
                 // Display error if any
@@ -435,7 +462,7 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
                 if let Some(progress) = app_state.progress() {
                     match progress {
                         Progress::Indeterminate => {
-                            ui.add_space(4.0);
+                            ui.add_space(scale(4.0));
                             ui.add(Spinner::new().color(Color32::WHITE));
                         }
                         Progress::Determinate(pr) => {
@@ -453,14 +480,14 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
 
             if !app_state.release_selection_menu() && app_state.current_operation().is_none() {
                 egui::Area::new(egui::Id::new("version_selector_indicator"))
-                    .anchor(egui::Align2::RIGHT_TOP, Vec2::new(-2.0, -2.0))
+                    .anchor(egui::Align2::RIGHT_TOP, Vec2::new(scale(-2.0), scale(-2.0)))
                     .interactable(false)
                     .show(ui.ctx(), |ui| {
                         ui.horizontal(|ui| {
-                            ui.spacing_mut().item_spacing.x = 4.0;
+                            ui.spacing_mut().item_spacing.x = scale(4.0);
 
                             // Draw circle background for button
-                            let button_size = 6.0;
+                            let button_size = scale(6.0);
                             let (rect, _response) = ui.allocate_exact_size(
                                 Vec2::splat(button_size),
                                 egui::Sense::empty(),
@@ -469,19 +496,19 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
                                 rect.center(),
                                 button_size / 2.0,
                                 Color32::from_rgb(60, 60, 60),
-                                egui::Stroke::new(1.0, Color32::from_rgb(100, 100, 100)),
+                                egui::Stroke::new(scale(1.0), Color32::from_rgb(100, 100, 100)),
                             );
                             ui.painter().text(
                                 rect.center(),
                                 egui::Align2::CENTER_CENTER,
                                 "X",
-                                egui::FontId::proportional(6.0),
+                                egui::FontId::proportional(scale(6.0)),
                                 Color32::from_rgb(180, 180, 180),
                             );
 
                             ui.label(
                                 RichText::new("Select Version")
-                                    .size(6.0)
+                                    .size(scale(6.0))
                                     .color(Color32::from_rgb(100, 100, 100)),
                             );
                         });
@@ -489,20 +516,20 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
             }
 
             if let Some(hint) = app_state.hint() {
-                ui.allocate_new_ui(
+                ui.scope_builder(
                     egui::UiBuilder::new().max_rect(Rect {
                         min: Pos2 {
                             x: 0.0,
-                            y: ui.max_rect().height() - 2.0,
+                            y: ui.max_rect().height() - scale(2.0),
                         },
                         max: Pos2 {
-                            x: 1024.0 / DPI_SCALE,
+                            x: DEFAULT_WIDTH as f32 / (DEFAULT_DPI_SCALE * unsafe { DPI_SCALE_FACTOR }),
                             y: ui.max_rect().height(),
                         },
                     }),
                     |ui| {
                         ui.centered_and_justified(|ui| {
-                            ui.label(RichText::new(hint).size(10.0));
+                            ui.label(RichText::new(hint).size(scale(10.0)));
                         });
                     },
                 );
@@ -516,14 +543,14 @@ pub fn run_ui(app_state: &'static AppStateManager) -> Result<()> {
                         RichText::new(
                             "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()-=_+[]{};':\",.<>/?",
                         )
-                        .size(10.0)
+                        .size(scale(10.0))
                         .color(Color32::TRANSPARENT)
                     );
                     ui.label(
                         RichText::new(
                             "XSelect Version",
                         )
-                        .size(6.0)
+                        .size(scale(6.0))
                         .color(Color32::TRANSPARENT)
                     );
                 },
