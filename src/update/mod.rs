@@ -67,7 +67,7 @@ pub fn self_update(app_state: &AppStateManager) -> Result<()> {
 
     println!("Fetching latest updater release...");
 
-    let release = fetch_latest_release("LoveRetro/nextui-updater-pak")?;
+    let release = fetch_latest_release("adam-ikari/nextui-updater-pak")?;
 
     println!("Latest updater release: {release:?}");
 
@@ -133,7 +133,7 @@ pub fn self_update(app_state: &AppStateManager) -> Result<()> {
 pub fn do_nextui_release_check(app_state: &AppStateManager) {
     // Fetch latest release information
     app_state.start_operation("Fetching latest NextUI release...");
-    let repo = "LoveRetro/NextUI";
+    let repo = "adam-ikari/NextUI-CN";
 
     // Fetch latest releases information
     app_state.start_operation("Fetching latest NextUI releases...");
